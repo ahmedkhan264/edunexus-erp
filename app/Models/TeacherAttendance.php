@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
 class TeacherAttendance extends Model
 {
     use HasFactory;
+
+    protected $table = 'teacher_attendances';
 
     protected $fillable = [
         'teacher_id',
@@ -17,6 +19,7 @@ class TeacherAttendance extends Model
         'check_out_time',
         'status',
         'late_minutes',
+        'working_hours',
         'remarks',
         'marked_by',
         'attendance_method'
@@ -24,13 +27,14 @@ class TeacherAttendance extends Model
 
     protected $casts = [
         'date' => 'date',
-        'check_in_time' => 'datetime:H:i:s',
-        'check_out_time' => 'datetime:H:i:s',
-        'late_minutes' => 'integer'
+        'check_in_time' => 'datetime',
+        'check_out_time' => 'datetime',
+        'late_minutes' => 'integer',
+        'working_hours' => 'decimal:2'
     ];
 
     /**
-     * Get the teacher (user) for the attendance.
+     * Get the teacher (user) associated with this attendance.
      */
     public function teacher()
     {
@@ -38,7 +42,7 @@ class TeacherAttendance extends Model
     }
 
     /**
-     * Get the user who marked the attendance.
+     * Get the user who marked this attendance.
      */
     public function marker()
     {
@@ -46,15 +50,15 @@ class TeacherAttendance extends Model
     }
 
     /**
-     * Scope a query to only include attendance for a specific date.
+     * Scope for a specific date.
      */
     public function scopeForDate($query, $date)
     {
-        return $query->where('date', $date);
+        return $query->whereDate('date', $date);
     }
 
     /**
-     * Scope a query to only include attendance for a specific teacher.
+     * Scope for a specific teacher.
      */
     public function scopeForTeacher($query, $teacherId)
     {
@@ -62,15 +66,7 @@ class TeacherAttendance extends Model
     }
 
     /**
-     * Scope a query to only include attendance within a date range.
-     */
-    public function scopeDateRange($query, $fromDate, $toDate)
-    {
-        return $query->whereBetween('date', [$fromDate, $toDate]);
-    }
-
-    /**
-     * Scope a query to only include present teachers.
+     * Scope for present teachers.
      */
     public function scopePresent($query)
     {
@@ -78,7 +74,7 @@ class TeacherAttendance extends Model
     }
 
     /**
-     * Scope a query to only include late teachers.
+     * Scope for late teachers.
      */
     public function scopeLate($query)
     {
@@ -86,7 +82,7 @@ class TeacherAttendance extends Model
     }
 
     /**
-     * Scope a query to only include absent teachers.
+     * Scope for absent teachers.
      */
     public function scopeAbsent($query)
     {
@@ -94,83 +90,9 @@ class TeacherAttendance extends Model
     }
 
     /**
-     * Check if teacher has checked in today.
+     * Get today's attendance status for a teacher.
      */
-    public function hasCheckedIn(): bool
-    {
-        return !is_null($this->check_in_time);
-    }
-
-    /**
-     * Check if teacher has checked out today.
-     */
-    public function hasCheckedOut(): bool
-    {
-        return !is_null($this->check_out_time);
-    }
-
-    /**
-     * Calculate working hours.
-     */
-    public function getWorkingHoursAttribute(): float
-    {
-        if (!$this->check_in_time || !$this->check_out_time) {
-            return 0;
-        }
-
-        $checkIn = Carbon::parse($this->date . ' ' . $this->check_in_time);
-        $checkOut = Carbon::parse($this->date . ' ' . $this->check_out_time);
-        
-        // Handle overnight checkout
-        if ($checkOut < $checkIn) {
-            $checkOut->addDay();
-        }
-
-        return $checkOut->diffInMinutes($checkIn) / 60;
-    }
-
-    /**
-     * Get formatted working hours.
-     */
-    public function getFormattedWorkingHoursAttribute(): string
-    {
-        $hours = $this->working_hours;
-        $wholeHours = floor($hours);
-        $minutes = round(($hours - $wholeHours) * 60);
-        
-        return sprintf('%d:%02d', $wholeHours, $minutes);
-    }
-
-    /**
-     * Get status badge color.
-     */
-    public function getStatusBadgeColor(): string
-    {
-        return match($this->status) {
-            'present' => 'success',
-            'late' => 'warning',
-            'absent' => 'danger',
-            default => 'secondary'
-        };
-    }
-
-    /**
-     * Get status display text.
-     */
-    public function getStatusDisplay(): string
-    {
-        return match($this->status) {
-            'present' => 'Present',
-            'late' => 'Late',
-            'absent' => 'Absent',
-            default => 'Unknown'
-        };
-    }
-
-    /**
-     * Get current attendance status for today.
-     */
-    public static function getTodayStatus($teacherId): ?self
+    public static function getTodayStatus($teacherId)
     {
         return self::forTeacher($teacherId)
             ->forDate(now()->format('Y-m-d'))
@@ -178,85 +100,125 @@ class TeacherAttendance extends Model
     }
 
     /**
-     * Mark check-in for teacher.
+     * Check if teacher has checked in today.
      */
-    public static function checkIn($teacherId, $checkInTime = null): self
+    public function hasCheckedIn()
+    {
+        return !is_null($this->check_in_time);
+    }
+
+    /**
+     * Check if teacher has checked out today.
+     */
+    public function hasCheckedOut()
+    {
+        return !is_null($this->check_out_time);
+    }
+
+    /**
+     * Process check-in for a teacher.
+     */
+    public static function checkIn($teacherId)
     {
         $today = now()->format('Y-m-d');
-        $checkInTime = $checkInTime ?? now()->format('H:i:s');
+        $now = now();
         
-        // Get late cutoff time from settings
-        $lateCutoff = config('attendance.late_cutoff', '08:30:00');
+        // Check if already checked in
+        $existing = self::forTeacher($teacherId)->forDate($today)->first();
         
-        $status = 'present';
+        if ($existing && $existing->hasCheckedIn()) {
+            throw new \Exception('You have already checked in today.');
+        }
+        
+        // Define check-in time (e.g., 9:00 AM)
+        $checkInDeadline = Carbon::parse($today . ' 09:00:00');
         $lateMinutes = 0;
+        $status = 'present';
         
-        if ($checkInTime > $lateCutoff) {
+        if ($now->gt($checkInDeadline)) {
+            $lateMinutes = $checkInDeadline->diffInMinutes($now);
             $status = 'late';
-            $lateMinutes = Carbon::parse($checkInTime)->diffInMinutes($lateCutoff);
         }
         
         return self::updateOrCreate(
-            ['teacher_id' => $teacherId, 'date' => $today],
             [
-                'check_in_time' => $checkInTime,
+                'teacher_id' => $teacherId,
+                'date' => $today,
+            ],
+            [
+                'check_in_time' => $now,
                 'status' => $status,
                 'late_minutes' => $lateMinutes,
-                'attendance_method' => 'system'
+                'attendance_method' => 'system',
+                'marked_by' => $teacherId
             ]
         );
     }
 
     /**
-     * Mark check-out for teacher.
+     * Process check-out for a teacher.
      */
-    public static function checkOut($teacherId, $checkOutTime = null): ?self
+    public static function checkOut($teacherId)
     {
         $today = now()->format('Y-m-d');
-        $checkOutTime = $checkOutTime ?? now()->format('H:i:s');
+        $now = now();
         
-        $attendance = self::forTeacher($teacherId)
-            ->forDate($today)
-            ->first();
+        $attendance = self::forTeacher($teacherId)->forDate($today)->first();
         
-        if ($attendance && $attendance->hasCheckedIn()) {
-            $attendance->update([
-                'check_out_time' => $checkOutTime
-            ]);
-            
-            return $attendance->fresh();
+        if (!$attendance || !$attendance->hasCheckedIn()) {
+            return null;
         }
         
-        return null;
+        if ($attendance->hasCheckedOut()) {
+            throw new \Exception('You have already checked out today.');
+        }
+        
+        // Calculate working hours
+        $checkInTime = Carbon::parse($attendance->check_in_time);
+        $workingHours = $checkInTime->diffInHours($now);
+        
+        $attendance->update([
+            'check_out_time' => $now,
+            'working_hours' => $workingHours
+        ]);
+        
+        return $attendance;
     }
 
     /**
-     * Auto-mark absent for teachers who didn't check in.
+     * Get formatted working hours.
      */
-    public static function markAbsentForNoCheckIn(): int
+    public function getFormattedWorkingHoursAttribute()
     {
-        $today = now()->format('Y-m-d');
-        $teacherIds = User::whereHas('role', function($query) {
-            $query->where('slug', 'teacher');
-        })->where('is_active', true)->pluck('id');
-        
-        $markedCount = 0;
-        
-        foreach ($teacherIds as $teacherId) {
-            $existing = self::forTeacher($teacherId)->forDate($today)->first();
-            
-            if (!$existing) {
-                self::create([
-                    'teacher_id' => $teacherId,
-                    'date' => $today,
-                    'status' => 'absent',
-                    'attendance_method' => 'system'
-                ]);
-                
-                $markedCount++;
-            }
+        if (!$this->working_hours) {
+            return '0h 0m';
         }
         
-        return $markedCount;
+        $hours = floor($this->working_hours);
+        $minutes = ($this->working_hours - $hours) * 60;
+        
+        return "{$hours}h " . round($minutes) . "m";
+    }
+
+    /**
+     * Get status display text.
+     */
+    public function getStatusDisplay()
+    {
+        return ucfirst($this->status);
+    }
+
+    /**
+     * Get status badge color.
+     */
+    public function getStatusBadgeColor()
+    {
+        return match($this->status) {
+            'present' => 'success',
+            'late' => 'warning',
+            'absent' => 'danger',
+            'half_day' => 'info',
+            default => 'secondary'
+        };
     }
 }

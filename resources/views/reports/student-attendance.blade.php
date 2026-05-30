@@ -96,7 +96,7 @@
         <div class="col-md-2">
             <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <h5 class="card-title">{{ $reportData['summary']['total_students'] }}</h5>
+                    <h5 class="card-title">{{ $reportData['summary']['total_students'] ?? 0 }}</h5>
                     <p class="card-text">Total Students</p>
                 </div>
             </div>
@@ -104,7 +104,7 @@
         <div class="col-md-2">
             <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5 class="card-title">{{ $reportData['summary']['total_present'] }}</h5>
+                    <h5 class="card-title">{{ $reportData['summary']['total_present'] ?? 0 }}</h5>
                     <p class="card-text">Present Days</p>
                 </div>
             </div>
@@ -112,7 +112,7 @@
         <div class="col-md-2">
             <div class="card bg-danger text-white">
                 <div class="card-body">
-                    <h5 class="card-title">{{ $reportData['summary']['total_absent'] }}</h5>
+                    <h5 class="card-title">{{ $reportData['summary']['total_absent'] ?? 0 }}</h5>
                     <p class="card-text">Absent Days</p>
                 </div>
             </div>
@@ -120,7 +120,7 @@
         <div class="col-md-2">
             <div class="card bg-warning text-dark">
                 <div class="card-body">
-                    <h5 class="card-title">{{ $reportData['summary']['total_late'] }}</h5>
+                    <h5 class="card-title">{{ $reportData['summary']['total_late'] ?? 0 }}</h5>
                     <p class="card-text">Late Days</p>
                 </div>
             </div>
@@ -128,7 +128,7 @@
         <div class="col-md-2">
             <div class="card bg-info text-white">
                 <div class="card-body">
-                    <h5 class="card-title">{{ number_format($reportData['summary']['average_attendance'], 1) }}%</h5>
+                    <h5 class="card-title">{{ number_format($reportData['summary']['average_attendance'] ?? 0, 1) }}%</h5>
                     <p class="card-text">Avg Attendance</p>
                 </div>
             </div>
@@ -136,7 +136,7 @@
         <div class="col-md-2">
             <div class="card bg-secondary text-white">
                 <div class="card-body">
-                    <h5 class="card-title">{{ $reportData['date_range']['days'] }}</h5>
+                    <h5 class="card-title">{{ $reportData['date_range']['days'] ?? 0 }}</h5>
                     <p class="card-text">Total Days</p>
                 </div>
             </div>
@@ -159,9 +159,9 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Student-wise Attendance</h5>
                 <div>
-                    <span class="badge bg-light text-dark">{{ count($reportData['students']) }} Students</span>
-                    <span class="badge bg-warning ms-1">{{ $reportData['summary']['perfect_attendance'] }} Perfect</span>
-                    <span class="badge bg-danger ms-1">{{ $reportData['summary']['low_attendance'] }} Low</span>
+                    <span class="badge bg-light text-dark">{{ count($reportData['students'] ?? []) }} Students</span>
+                    <span class="badge bg-warning ms-1">{{ $reportData['summary']['perfect_attendance'] ?? 0 }} Perfect</span>
+                    <span class="badge bg-danger ms-1">{{ $reportData['summary']['low_attendance'] ?? 0 }} Low</span>
                 </div>
             </div>
         </div>
@@ -182,7 +182,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($reportData['students'] as $student)
+                        @forelse($reportData['students'] ?? [] as $student)
                         <tr>
                             <td>{{ $student['roll_number'] ?? '-' }}</td>
                             <td>
@@ -209,25 +209,38 @@
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="progress me-2" style="width: 60px; height: 8px;">
-                                        <div class="progress-bar bg-{{ $student['status_color'] }}" 
-                                             style="width: {{ $student['attendance_percentage'] }}%"></div>
+                                        <div class="progress-bar bg-{{ $student['status_color'] ?? 'secondary' }}" 
+                                             style="width: {{ $student['attendance_percentage'] ?? 0 }}%"></div>
                                     </div>
-                                    <small>{{ number_format($student['attendance_percentage'], 1) }}%</small>
+                                    <small>{{ number_format($student['attendance_percentage'] ?? 0, 1) }}%</small>
                                 </div>
                             </td>
                             <td>
-                                <span class="badge bg-{{ $student['status_color'] }}">
-                                    {{ $student['attendance_percentage'] >= 95 ? 'Excellent' : 
-                                       ($student['attendance_percentage'] >= 85 ? 'Good' : 
-                                       ($student['attendance_percentage'] >= 75 ? 'Average' : 'Poor')) }}
+                                @php
+                                    $percentage = $student['attendance_percentage'] ?? 0;
+                                    $statusText = $percentage >= 95 ? 'Excellent' : ($percentage >= 85 ? 'Good' : ($percentage >= 75 ? 'Average' : 'Poor'));
+                                    $statusColor = $student['status_color'] ?? ($percentage >= 95 ? 'success' : ($percentage >= 85 ? 'info' : ($percentage >= 75 ? 'warning' : 'danger')));
+                                @endphp
+                                <span class="badge bg-{{ $statusColor }}">
+                                    {{ $statusText }}
                                 </span>
                             </td>
                         </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <i class="fas fa-chart-line me-2"></i>No attendance data found for the selected criteria
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
+    @else
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle me-2"></i>Please select date range and generate report to view attendance data.
     </div>
     @endif
 </div>
@@ -355,10 +368,10 @@ function loadStudents(classId) {
 
 function generateReport() {
     showLoading();
-    
+
     const formData = new FormData(document.getElementById('filterForm'));
     const params = new URLSearchParams(formData);
-    
+
     window.location.href = window.location.pathname + '?' + params.toString();
 }
 
@@ -385,14 +398,38 @@ function exportToExcel() {
 }
 
 function exportToPdf() {
-    const formData = new FormData(document.getElementById('filterForm'));
-    const params = new URLSearchParams(formData);
+    // Get values
+    const fromDate = document.getElementById('from_date').value;
+    const toDate = document.getElementById('to_date').value;
+    const classId = document.getElementById('class_id').value;
+    const sectionId = document.getElementById('section_id').value;
+    const studentId = document.getElementById('student_id').value;
     
-    window.open(`/reports/student-attendance/export/pdf?${params.toString()}`);
+    if (!fromDate || !toDate) {
+        alert('Please select both From Date and To Date');
+        return;
+    }
+    
+    // Use Laravel's named route to generate URL
+    let url = '{{ route("reports.student-attendance.pdf") }}?';
+    url += `from_date=${fromDate}&to_date=${toDate}`;
+    
+    if (classId && classId !== '') {
+        url += `&class_id=${classId}`;
+    }
+    if (sectionId && sectionId !== '') {
+        url += `&section_id=${sectionId}`;
+    }
+    if (studentId && studentId !== '') {
+        url += `&student_id=${studentId}`;
+    }
+    
+    window.open(url, '_blank');
 }
-
 function initializeChart() {
-    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    const canvas = document.getElementById('attendanceChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     
     // Get chart data from server
     const formData = new FormData(document.getElementById('filterForm'));

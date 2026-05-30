@@ -21,68 +21,25 @@
     </div>
 
     <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-0">Total Students</h6>
-                            <h3 class="mb-0">{{ number_format($stats['total_students']) }}</h3>
-                        </div>
-                        <div class="fs-1 opacity-50">
-                            <i class="fas fa-users"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-0">Enrolled</h6>
-                            <h3 class="mb-0">{{ number_format($stats['enrolled_students']) }}</h3>
-                        </div>
-                        <div class="fs-1 opacity-50">
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-0">Graduated</h6>
-                            <h3 class="mb-0">{{ number_format($stats['graduated_students']) }}</h3>
-                        </div>
-                        <div class="fs-1 opacity-50">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-0">Active</h6>
-                            <h3 class="mb-0">{{ number_format($stats['active_students']) }}</h3>
-                        </div>
-                        <div class="fs-1 opacity-50">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                    </div>
-                </div>
+  <div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5>Total Students</h5>
+                <h3>{{ $stats['total'] ?? 0 }}</h3>
             </div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5>Active (Enrolled)</h5>
+                <h3>{{ $stats['active'] ?? 0 }}</h3>
+            </div>
+        </div>
+    </div>
+    <!-- Add more cards as needed -->
+</div>
 
     <!-- Filters Section -->
     <div class="card border-0 shadow-sm mb-4">
@@ -100,8 +57,7 @@
                         <span class="input-group-text">
                             <i class="fas fa-search"></i>
                         </span>
-                        <input type="text" class="form-control" id="search" name="search" 
-                               value="{{ $search }}" placeholder="Search by name, ID, email, phone...">
+                       <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ request('search') }}">
                     </div>
                 </div>
 
@@ -164,10 +120,12 @@
                     <a href="{{ route('admin.students.index') }}" class="btn btn-outline-secondary ms-2">
                         <i class="fas fa-times me-2"></i>Clear
                     </a>
-                    <a href="{{ route('admin.students.print') }}?{{ request()->getQueryString() }}" 
-                       class="btn btn-outline-primary ms-2" target="_blank">
-                        <i class="fas fa-print me-2"></i>Print Results
-                    </a>
+                    
+<a href="{{ route('admin.students.print') }}?{{ request()->getQueryString() }}" 
+   class="btn btn-outline-primary ms-2" target="_blank">
+    <i class="fas fa-print me-2"></i>Print Results
+</a>
+
                 </div>
             </form>
         </div>

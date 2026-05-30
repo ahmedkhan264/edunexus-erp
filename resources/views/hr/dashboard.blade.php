@@ -148,9 +148,9 @@
                         <h6 class="mb-0">
                             <i class="fas fa-calendar-alt me-2"></i>Recent Leave Requests
                         </h6>
-                        <a href="{{ route('hr.leaves.index') }}" class="btn btn-sm btn-light">
-                            View All
-                        </a>
+                        <a href="{{ route('hr.leave-requests.index') }}" class="btn btn-sm btn-light">
+    View All
+</a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -217,43 +217,37 @@
     </div>
 
     <!-- Quick Links -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0">
-                        <i class="fas fa-link me-2"></i>Quick Links
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 col-6 mb-3">
-                            <a href="{{ route('hr.employees.index') }}" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-users me-2"></i>Employee List
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <a href="{{ route('hr.leaves.index') }}" class="btn btn-outline-info w-100">
-                                <i class="fas fa-calendar-alt me-2"></i>Leave Management
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <a href="{{ route('hr.payroll.index') }}" class="btn btn-outline-success w-100">
-                                <i class="fas fa-money-bill-wave me-2"></i>Payroll
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <a href="{{ route('hr.reports.index') }}" class="btn btn-outline-warning w-100">
-                                <i class="fas fa-chart-pie me-2"></i>Reports
-                            </a>
-                        </div>
+  <!-- Quick Links -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-link me-2"></i>Quick Links
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 col-6 mb-3">
+                        <a href="{{ route('hr.teacher-attendance.index') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-chalkboard-user me-2"></i>Teacher Attendance
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-6 mb-3">
+                        <a href="{{ route('hr.leave-requests.index') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-calendar-alt me-2"></i>Leave Management
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-6 mb-3">
+                        <a href="{{ route('hr.payroll.index') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-money-bill-wave me-2"></i>Payroll
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 <style>
 .border-left-primary {
     border-left: 4px solid #0d6efd !important;
@@ -387,7 +381,7 @@ function approveLeave(leaveId) {
         return;
     }
     
-    fetch(`/hr/leaves/${leaveId}/approve`, {
+    fetch(`/hr/leave-requests/${leaveId}/approve`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -398,7 +392,6 @@ function approveLeave(leaveId) {
     .then(data => {
         if (data.success) {
             showToast('Success', data.message, 'success');
-            // Reload the page to show updated data
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
@@ -417,7 +410,7 @@ function rejectLeave(leaveId) {
         return;
     }
     
-    fetch(`/hr/leaves/${leaveId}/reject`, {
+    fetch(`/hr/leave-requests/${leaveId}/reject`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -432,7 +425,6 @@ function rejectLeave(leaveId) {
     .then(data => {
         if (data.success) {
             showToast('Success', data.message, 'success');
-            // Reload the page to show updated data
             setTimeout(() => {
                 window.location.reload();
             }, 1000);

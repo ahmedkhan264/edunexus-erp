@@ -11,7 +11,18 @@
             <p class="text-muted mb-0">Monitor and manage teacher attendance</p>
         </div>
         <div class="text-end">
-            <a href="{{ route('hr.teacher-attendance.manual') }}" class="btn btn-primary">
+            <!-- Option 1: Use manual.create route -->
+            <!-- <a href="{{ route('hr.teacher-attendance.manual.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Manual Entry
+            </a> -->
+            
+            <!-- OR Option 2: Use direct URL -->
+            <!-- <a href="{{ url('/hr/teacher-attendance/manual/create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Manual Entry
+            </a> -->
+            
+            <!-- OR Option 3: Use resource create route -->
+            <a href="{{ route('hr.teacher-attendance.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Manual Entry
             </a>
         </div>
@@ -334,6 +345,13 @@ function viewDetails(attendanceId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                const remarksHtml = data.attendance.remarks ? `
+                    <div class="mt-3">
+                        <h6>Remarks</h6>
+                        <p class="text-muted">${data.attendance.remarks}</p>
+                    </div>
+                ` : '';
+                
                 const content = `
                     <div class="row">
                         <div class="col-md-6">
@@ -395,33 +413,167 @@ function viewDetails(attendanceId) {
                             </table>
                         </div>
                     </div>
-                    @if(data.attendance.remarks)
-                    <div class="mt-3">
-                        <h6>Remarks</h6>
-                        <p class="text-muted">${data.attendance.remarks}</p>
-                    </div>
-                    @endif
+                    ${remarksHtml}
                 `;
                 
                 document.getElementById('attendanceDetailsContent').innerHTML = content;
                 new bootstrap.Modal(document.getElementById('attendanceDetailsModal')).show();
+            } else {
+                alert('Failed to load attendance details');
             }
         })
         .catch(error => {
             console.error('Error loading attendance details:', error);
-            alert('Failed to load attendance details');
+            alert('Failed to load attendance details. Please try again.');
         });
 }
 
 function editAttendance(attendanceId) {
-    // Redirect to edit page or open edit modal
     window.location.href = `/hr/teacher-attendance/${attendanceId}/edit`;
 }
 
-// Auto-refresh every 30 seconds
-setInterval(() => {
-    const currentUrl = new URL(window.location);
-    window.location.href = currentUrl.toString();
-}, 30000);
+// Optional: Auto-refresh only the table data (not the whole page)
+// This is a better approach than reloading the entire page
+let autoRefreshInterval = null;
+
+function startAutoRefresh() {
+    // Clear existing interval if any
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    
+    // Set new interval to refresh data every 30 seconds
+    autoRefreshInterval = setInterval(() => {
+        refreshAttendanceData();
+    }, 30000);
+}
+
+function refreshAttendanceData() {
+    // Get current filter values
+    const date = document.getElementById('date')?.value || '';
+    const departmentId = document.getElementById('department_id')?.value || '';
+    const status = document.getElementById('status')?.value || 'all';
+    
+    // Build URL with current filters
+    let url = window.location.pathname + '?';
+    if (date) url += `date=${date}&`;
+    if (departmentId) url += `department_id=${departmentId}&`;
+    if (status) url += `status=${status}&`;
+    
+    // Remove trailing & if exists
+    url = url.replace(/&$/, '');
+    
+    // Fetch updated data
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Extract just the table and KPI cards from the response
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // Update KPI cards
+        const kpiCards = doc.querySelectorAll('.row.mt-4 .card');
+        const currentKPICards = document.querySelectorAll('.row.mt-4 .card');
+        if (kpiCards.length === currentKPICards.length) {
+            kpiCards.forEach((card, index) => {
+                currentKPICards[index].innerHTML = card.innerHTML;
+            });
+        }
+        
+        // Update table body
+        const newTableBody = doc.querySelector('.table tbody');
+        const currentTableBody = document.querySelector('.table tbody');
+        if (newTableBody && currentTableBody) {
+            currentTableBody.innerHTML = newTableBody.innerHTML;
+        }
+        
+        // Update pagination
+        const newPagination = doc.querySelector('.card-footer .d-flex');
+        const currentPagination = document.querySelector('.card-footer .d-flex');
+        if (newPagination && currentPagination) {
+            currentPagination.innerHTML = newPagination.innerHTML;
+        }
+        
+        // Show notification
+        showNotification('Data refreshed automatically', 'info');
+    })
+    .catch(error => {
+        console.error('Error refreshing data:', error);
+    });
+}
+
+function showNotification(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    toast.style.zIndex = '9999';
+    toast.style.animation = 'slideIn 0.3s ease-out';
+    toast.innerHTML = `
+        <i class="fas fa-${type === 'info' ? 'sync-alt fa-spin' : 'info-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Add CSS for notification animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Add refresh button to page header
+document.addEventListener('DOMContentLoaded', function() {
+    // Add refresh button next to the Manual Entry button
+    const pageHeader = document.querySelector('.d-flex.justify-content-between.align-items-center.mb-4 .text-end');
+    if (pageHeader && !document.querySelector('#refreshDataBtn')) {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.id = 'refreshDataBtn';
+        refreshBtn.className = 'btn btn-outline-secondary me-2';
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
+        refreshBtn.onclick = () => refreshAttendanceData();
+        pageHeader.insertBefore(refreshBtn, pageHeader.firstChild);
+    }
+    
+    // Start auto-refresh (optional - comment out if not wanted)
+    // startAutoRefresh();
+    
+    // Stop auto-refresh when page is hidden (good practice)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        } else {
+            // startAutoRefresh(); // Uncomment if you want to restart when page becomes visible
+        }
+    });
+});
+
+// Clean up interval on page unload
+window.addEventListener('beforeunload', function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+});
 </script>
 @endpush

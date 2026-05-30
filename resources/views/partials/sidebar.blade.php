@@ -27,17 +27,36 @@
                     
                     <div class="sidebar-submenu collapse {{ $item['active'] ? 'show' : '' }}" id="submenu-{{ md5($item['title']) }}">
                         @foreach($item['submenu'] as $subitem)
-                            <a href="{{ route($subitem['route']) }}" class="sidebar-submenu-item">
-                                {{ $subitem['title'] }}
-                            </a>
+                            @php
+                                $routeExists = isset($subitem['route']) && Route::has($subitem['route']);
+                            @endphp
+                            @if($routeExists)
+                                <a href="{{ route($subitem['route']) }}" class="sidebar-submenu-item">
+                                    {{ $subitem['title'] }}
+                                </a>
+                            @else
+                                <span class="sidebar-submenu-item disabled" style="opacity:0.6; pointer-events:none;">
+                                    {{ $subitem['title'] }} (coming soon)
+                                </span>
+                            @endif
                         @endforeach
                     </div>
                 @else
-                    <a href="{{ route($item['route']) }}" 
-                       class="sidebar-link {{ $item['active'] ? 'active' : '' }}">
-                        <i class="{{ $item['icon'] }}"></i>
-                        <span>{{ $item['title'] }}</span>
-                    </a>
+                    @php
+                        $routeExists = isset($item['route']) && Route::has($item['route']);
+                    @endphp
+                    @if($routeExists)
+                        <a href="{{ route($item['route']) }}" 
+                           class="sidebar-link {{ $item['active'] ? 'active' : '' }}">
+                            <i class="{{ $item['icon'] }}"></i>
+                            <span>{{ $item['title'] }}</span>
+                        </a>
+                    @else
+                        <span class="sidebar-link disabled" style="opacity:0.6; pointer-events:none;">
+                            <i class="{{ $item['icon'] }}"></i>
+                            <span>{{ $item['title'] }} (coming soon)</span>
+                        </span>
+                    @endif
                 @endif
             </div>
         @endforeach

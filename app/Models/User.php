@@ -39,9 +39,23 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
-    public function hasRole(string $roleSlug): bool
+    /**
+     * Check if user has a specific role (or any of multiple roles).
+     *
+     * @param string|array $roleSlug
+     * @return bool
+     */
+    public function hasRole(string|array $roleSlug): bool
     {
-        return $this->role && $this->role->slug === $roleSlug;
+        if (!$this->role) {
+            return false;
+        }
+
+        if (is_array($roleSlug)) {
+            return in_array($this->role->slug, $roleSlug);
+        }
+
+        return $this->role->slug === $roleSlug;
     }
 
     public function isActive(): bool

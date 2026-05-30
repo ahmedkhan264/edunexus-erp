@@ -116,8 +116,12 @@
         <h1>EduNexus ERP + LMS</h1>
         <h2>Student Attendance Report</h2>
         <p><strong>Date Range:</strong> {{ $reportData['date_range']['from'] }} to {{ $reportData['date_range']['to'] }}</p>
-        @if(!empty($validated['class_id']))
-            <p><strong>Class:</strong> {{ App\Models\SchoolClass::find($validated['class_id'])->name }}</p>
+        <p><strong>Class:</strong> {{ $reportData['filters']['class'] }}</p>
+        @if($reportData['filters']['section'] != 'All Sections')
+            <p><strong>Section:</strong> {{ $reportData['filters']['section'] }}</p>
+        @endif
+        @if($reportData['filters']['student'] != 'All Students')
+            <p><strong>Student:</strong> {{ $reportData['filters']['student'] }}</p>
         @endif
         <p><strong>Generated on:</strong> {{ now()->format('Y-m-d H:i:s') }}</p>
     </div>
@@ -166,7 +170,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($reportData['students'] as $student)
+            @forelse($reportData['students'] as $student)
             <tr>
                 <td>{{ $student['roll_number'] ?? '-' }}</td>
                 <td>{{ $student['name'] }}</td>
@@ -195,7 +199,13 @@
                     </span>
                 </td>
             </tr>
-            @endforeach
+            @empty
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 40px;">
+                    No attendance records found for the selected criteria
+                </td>
+            </tr>
+            @endforelse
         </tbody>
     </table>
 

@@ -2,72 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Role;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function run()
     {
         $roles = [
-            [
-                'name' => 'Super Admin',
-                'slug' => 'super_admin',
-                'description' => 'Full system access, multi-institute management',
-            ],
-            [
-                'name' => 'Principal',
-                'slug' => 'principal',
-                'description' => 'Executive dashboard, approvals, reports',
-            ],
-            [
-                'name' => 'Admin',
-                'slug' => 'admin',
-                'description' => 'Day-to-day operations, student/staff management',
-            ],
-            [
-                'name' => 'Teacher',
-                'slug' => 'teacher',
-                'description' => 'Attendance, LMS content, assignments, live classes',
-            ],
-            [
-                'name' => 'Student',
-                'slug' => 'student',
-                'description' => 'Lectures, assignments, fees, timetable, results',
-            ],
-            [
-                'name' => 'Parent',
-                'slug' => 'parent',
-                'description' => 'Child\'s attendance, fees, performance monitoring',
-            ],
-            [
-                'name' => 'Accountant',
-                'slug' => 'accountant',
-                'description' => 'Fee challans, payments, finance reports',
-            ],
-            [
-                'name' => 'HR Manager',
-                'slug' => 'hr_manager',
-                'description' => 'Staff records, leave, payroll, salary slips',
-            ],
-            [
-                'name' => 'Librarian',
-                'slug' => 'librarian',
-                'description' => 'Books, issue/return, overdue tracking',
-            ],
-            [
-                'name' => 'Timetable Coordinator',
-                'slug' => 'timetable_coordinator',
-                'description' => 'Class scheduling, teacher/room assignment',
-            ],
+            'Super Admin', 'Principal', 'Admin', 'Teacher', 'Student',
+            'Parent', 'Accountant', 'HR Manager', 'Librarian', 'Timetable Coordinator'
         ];
 
         foreach ($roles as $role) {
-            Role::create($role);
+            Role::create([
+                'name' => $role,
+                'slug' => \Illuminate\Support\Str::slug($role)
+            ]);
         }
     }
 }

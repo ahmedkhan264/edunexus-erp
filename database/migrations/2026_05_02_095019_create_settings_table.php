@@ -26,7 +26,7 @@ return new class extends Migration
             // Indexes
             $table->index(['category']);
             $table->index(['is_public']);
-            $table->unique(['key']);
+
         });
     }
 

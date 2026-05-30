@@ -9,6 +9,7 @@ use App\Models\Payroll;
 use App\Models\Book;
 use App\Models\BookLoan;
 use App\Models\User;
+use App\Models\SchoolClass; // added for class filter
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
@@ -22,12 +23,132 @@ class ReportDashboardController extends Controller
      */
     public function index(): View
     {
-        // Get comprehensive dashboard data
         $dashboardData = $this->getDashboardData();
-        
         return view('reports.dashboard', compact('dashboardData'));
     }
-    
+
+    /**
+     * Student Attendance Report Page.
+     */
+  public function studentAttendance(Request $request): View
+{
+    // Fixed relationship
+    $query = Attendance::with(['user', 'class']);
+
+    // Apply filters
+    if ($request->filled('class_id')) {
+        $query->where('class_id', $request->class_id);
+    }
+
+    if ($request->filled('date_from')) {
+        $query->whereDate('date', '>=', $request->date_from);
+    }
+
+    if ($request->filled('date_to')) {
+        $query->whereDate('date', '<=', $request->date_to);
+    }
+
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    $attendances = $query->orderBy('date', 'desc')
+                         ->paginate(20)
+                         ->withQueryString();
+
+    $classes = SchoolClass::all();
+
+    $statusOptions = ['present', 'absent', 'late', 'holiday'];
+
+    return view(
+        'reports.student-attendance',
+        compact('attendances', 'classes', 'statusOptions')
+    );
+}
+
+    /**
+     * Teacher Attendance Report Page.
+     */
+    public function teacherAttendance(Request $request): View
+    {
+        // Build teacher attendance query using the existing Attendance model
+        // (assuming teacher_id or user role filtering)
+        $query = Attendance::whereHas('user', function ($q) {
+            $q->where('role_id', 3); // role_id 3 = Teacher (adjust if different)
+        })->with(['user', 'class']);
+
+        if ($request->filled('teacher_id')) {
+            $query->where('user_id', $request->teacher_id);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('date', '<=', $request->date_to);
+        }
+
+        $attendances = $query->orderBy('date', 'desc')->paginate(20)->withQueryString();
+        $teachers = User::where('role_id', 3)->get();
+
+        return view('reports.teacher-attendance', compact('attendances', 'teachers'));
+    }
+
+    /**
+     * Fee Collection Report Page.
+     */
+    public function feeCollection(Request $request): View
+    {
+        // Placeholder – adapt when Fee model exists
+        // For now, pass dummy data or empty collection
+        $collections = collect();
+        $totalCollected = 0;
+        $pendingFees = 0;
+
+        if (class_exists(\App\Models\FeePayment::class)) {
+            $query = \App\Models\FeePayment::with('student.user');
+            if ($request->filled('date_from')) {
+                $query->whereDate('payment_date', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('payment_date', '<=', $request->date_to);
+            }
+            $collections = $query->orderBy('payment_date', 'desc')->paginate(20);
+            $totalCollected = \App\Models\FeePayment::sum('amount');
+            $pendingFees = \App\Models\FeePayment::where('status', 'pending')->sum('amount');
+        }
+
+        return view('reports.fee-collection', compact('collections', 'totalCollected', 'pendingFees'));
+    }
+
+    /**
+     * Library Usage Report Page.
+     */
+    public function libraryUsage(Request $request): View
+    {
+        $query = BookLoan::with(['book', 'user']);
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('issue_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('issue_date', '<=', $request->date_to);
+        }
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->whereNull('return_date');
+            } elseif ($request->status === 'returned') {
+                $query->whereNotNull('return_date');
+            }
+        }
+
+        $loans = $query->orderBy('issue_date', 'desc')->paginate(20)->withQueryString();
+        $totalBooks = Book::count();
+        $activeLoans = BookLoan::whereNull('return_date')->count();
+        $overdueLoans = BookLoan::whereNull('return_date')->where('due_date', '<', now())->count();
+
+        return view('reports.library-usage', compact('loans', 'totalBooks', 'activeLoans', 'overdueLoans'));
+    }
+
     /**
      * Get comprehensive dashboard data.
      */
@@ -64,7 +185,7 @@ class ReportDashboardController extends Controller
         
         // HR Statistics
         $hrStats = [
-            'total_employees' => User::whereIn('role_id', [3, 4, 8, 9])->count(), // Teacher, Admin, HR Manager, Librarian
+            'total_employees' => User::whereIn('role_id', [3, 4, 8, 9])->count(),
             'active_employees' => User::whereIn('role_id', [3, 4, 8, 9])
                                      ->where('status', 'active')
                                      ->count(),
@@ -324,8 +445,6 @@ class ReportDashboardController extends Controller
      */
     private function getSystemUptime(): string
     {
-        // This would typically come from a monitoring system
-        // For now, return a placeholder
         return '99.9%';
     }
     
@@ -334,8 +453,6 @@ class ReportDashboardController extends Controller
      */
     private function getDatabaseSize(): string
     {
-        // This would typically calculate actual database size
-        // For now, return a placeholder
         return '2.5 MB';
     }
     

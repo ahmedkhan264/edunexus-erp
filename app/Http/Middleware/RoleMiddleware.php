@@ -5,32 +5,46 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string ...$roles): Response
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @param  string  ...$roles
+     * @return mixed
+     */
+    public function handle(Request $request, Closure $next, ...$roles)
     {
         if (!Auth::check()) {
-            return redirect('/login');
+            return redirect()->route('login');
         }
 
         $user = Auth::user();
+        $userRole = $user->role->name ?? null;
 
-        if (!$user->isActive()) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect('/login')->with('error', 'Your account has been deactivated.');
+        // If no role parameter defined, allow all authenticated users
+        if (empty($roles)) {
+            return $next($request);
         }
 
-        foreach ($roles as $role) {
-            if ($user->hasRole($role)) {
-                return $next($request);
-            }
+        // Check if user's role matches any of the allowed roles
+        if (in_array($userRole, $roles)) {
+            return $next($request);
         }
 
-        abort(403, 'Unauthorized access.');
+        // Role not authorized – redirect based on user role or default
+        switch ($userRole) {
+            case 'Admin':
+                return redirect()->route('admin.dashboard');
+            case 'Teacher':
+                return redirect()->route('teacher.dashboard');
+            case 'Student':
+                return redirect()->route('student.dashboard');
+            default:
+                return redirect()->route('dashboard');
+        }
     }
 }

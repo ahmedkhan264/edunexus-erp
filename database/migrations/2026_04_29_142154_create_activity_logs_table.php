@@ -20,7 +20,6 @@ return new class extends Migration
             $table->json('properties')->nullable();
             $table->timestamps();
             
-            $table->index(['loggable_type', 'loggable_id']);
             $table->index(['user_id', 'created_at']);
             $table->index(['action', 'created_at']);
         });

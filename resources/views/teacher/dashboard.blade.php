@@ -91,39 +91,75 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <a href="{{ route('teacher.lms.lessons.create') }}" class="btn btn-primary btn-block">
-                                <i class="fas fa-plus me-2"></i>Upload Lesson
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <a href="{{ route('teacher.attendance.students') }}" class="btn btn-success btn-block">
-                                <i class="fas fa-user-check me-2"></i>Mark Attendance
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <a href="{{ route('teacher.attendance.checkin') }}" class="btn btn-info btn-block">
-                                <i class="fas fa-clock me-2"></i>Check In/Out
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <a href="{{ route('teacher.attendance.corrections') }}" class="btn btn-warning btn-block">
-                                <i class="fas fa-edit me-2"></i>Request Correction
-                            </a>
-                        </div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    @if(Route::has('teacher.lms.lessons.create'))
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <a href="{{ route('teacher.lms.lessons.create') }}" class="btn btn-primary btn-block">
+                            <i class="fas fa-plus me-2"></i>Upload Lesson
+                        </a>
                     </div>
+                    @else
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <button class="btn btn-secondary btn-block" disabled>
+                            <i class="fas fa-plus me-2"></i>Upload Lesson (Soon)
+                        </button>
+                    </div>
+                    @endif
+
+                    @if(Route::has('teacher.attendance.students'))
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <a href="{{ route('teacher.attendance.students') }}" class="btn btn-success btn-block">
+                            <i class="fas fa-user-check me-2"></i>Mark Attendance
+                        </a>
+                    </div>
+                    @else
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <button class="btn btn-secondary btn-block" disabled>
+                            <i class="fas fa-user-check me-2"></i>Mark Attendance (Soon)
+                        </button>
+                    </div>
+                    @endif
+
+                    @if(Route::has('teacher.attendance.checkin'))
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <a href="{{ route('teacher.attendance.checkin') }}" class="btn btn-info btn-block">
+                            <i class="fas fa-clock me-2"></i>Check In/Out
+                        </a>
+                    </div>
+                    @else
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <button class="btn btn-secondary btn-block" disabled>
+                            <i class="fas fa-clock me-2"></i>Check In/Out (Soon)
+                        </button>
+                    </div>
+                    @endif
+
+                    @if(Route::has('teacher.attendance.corrections'))
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <a href="{{ route('teacher.attendance.corrections') }}" class="btn btn-warning btn-block">
+                            <i class="fas fa-edit me-2"></i>Request Correction
+                        </a>
+                    </div>
+                    @else
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <button class="btn btn-secondary btn-block" disabled>
+                            <i class="fas fa-edit me-2"></i>Request Correction (Soon)
+                        </button>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Today's Schedule -->
     <div class="row mb-4">
